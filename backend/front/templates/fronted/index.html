@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ToDo App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+</head>
+<body>
+<div class="container">
+    <a href="{% url 'api_overview' %}">API</a>
+
+    <input type="text" id="in">
+    <input type="button" id="submit" value="Add">
+    <div class="container">
+        <ul class="col">
+
+        </ul>
+    </div>
+</div>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/js-cookie@2.2.1/src/js.cookie.min.js"></script>
+<script>
+    $(document).ready(function () {
+        fetch('/api/task-list/')
+            .then((res) => res.json())
+            .then((data) => {
+                let element = document.querySelector('ul.col');
+                data.forEach(item => {
+                    element.innerHTML += `
+                <li id="task-${item.id}"><span class="title-${item.id}">${item.title}</span>
+                    <button class="btn btn-warning ${item.id}">edit</button>
+                    <button class="btn btn-danger ${item.id}">delete</button>
+                </li>
+                `
+                })
+            })
+        document.querySelector('#submit').addEventListener('click', (e) => {
+            e.preventDefault();
+            const type = e.target.getAttribute('id');
+            const task_id = e.target.getAttribute('data');
+
+            const val = document.querySelector('#in');
+            console.log(val.value)
+            if (val.value != '') {
+                if (type == 'update') {
+                    fetch('/api/task-edit/' + task_id + "/", {
+                        method: "POST",
+                        body: JSON.stringify({
+                            "title": val.value
+                        }),
+                        headers: {"Content-type": "application/json; charset=UTF-8"}
+                    })
+                        .then(response => response.json())
+                        .then((data) => {
+                            const elem = ".title-" + data.id
+                            document.querySelector(elem).innerHTML = data.title
+                            val.value = "";
+                            $('#update').attr("value", "Add");
+                            $('#update').attr("id", "submit");
+                            $('#submit').removeAttr("data");
+                        })
+                } else {
+                    fetch('/api/task-create/', {
+                        method: "POST",
+                        body: JSON.stringify({
+                            "title": val.value
+                        }),
+                        headers: {"Content-type": "application/json; charset=UTF-8"}
+                    })
+                        .then(response => response.json())
+                        .then((data) => {
+                            let element = document.querySelector('ul.col');
+                            element.innerHTML += `
+                <li id="task-${data.id}"><span class="title-${data.id}">${data.title}</span>
+                    <button  class="btn btn-warning ${data.id}">edit</button>
+                    <button class="btn btn-danger ${data.id}">delete</button>
+                </li>
+                `
+                            val.value = "";
+                        })
+                }
+            } else {
+                alert('fill the input')
+            }
+        })
+        $(document).on("click", 'button.btn-danger', function (e) {
+            e.preventDefault();
+            let task_id = e.target.getAttribute('class').split(" ")[2];
+            fetch('/api/task-delete/' + task_id + "/", {
+                method: 'DELETE'
+            })
+                .then((res) => res.json())
+                .then((data) => {
+                    const elem = '#task-' + task_id
+                    document.querySelector(elem).remove();
+                })
+        })
+        $(document).on("click", 'button.btn-warning', function (e) {
+            e.preventDefault();
+            let task_id = e.target.getAttribute('class').split(" ")[2];
+            let elem = '.title-' + task_id;
+            const val = $(elem).text()
+            $('#submit').attr("id", "update");
+            $('#update').attr("value", "Update");
+            $('#update').attr("data", task_id);
+            $('#in').val(val);
+
+
+        })
+        $('#update').click(function (e) {
+            e.preventDefault()
+            console.log(e.target)
+        })
+
+
+    });
+</script>
+</body>
+</html>
